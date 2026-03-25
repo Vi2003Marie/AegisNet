@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AegisNet - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e1a;
+            color: #e0e6f0;
+            font-family: 'Segue UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+       .login-box {
+    background: #0d1227;
+    border: 1px solid #1e3a5f;
+    border-radius: 16px;
+    padding: 40px 25px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    margin: 15px;
+}
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            color: #00d4ff;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+        .logo span { color: #ffffff; }
+        .subtitle {
+            color: #7a8fa6;
+            font-size: 13px;
+            margin-bottom: 35px;
+        }
+        .form-control {
+            background: #111c35;
+            border: 1px solid #1e3a5f;
+            color: #e0e6f0;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .form-control:focus {
+            background: #111c35;
+            border-color: #00d4ff;
+            color: #e0e6f0;
+            box-shadow: 0 0 0 2px RGBA(0,212,255,0.15);
+            outline: none;
+        }
+        .form-control::placeholder { color: #4a5f76; }
+        .input-group {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4a5f76;
+            font-size: 14px;
+        }
+        .input-group input {
+            padding-left: 40px;
+            margin-bottom: 0;
+        }
+        .btn-login {
+            background: #00d4ff;
+            color: #0a0e1a;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            width: 100%;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-login:hover { background: #00b8d9; }
+        .error-msg {
+            background: #3d0f0f;
+            border: 1px solid #ff4d4d;
+            color: #ff4d4d;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        .shield-icon {
+            font-size: 48px;
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="shield-icon"><i class="fas fa-shield-alt"></i></div>
+        <div class="logo">AEGIS<span>NET</span></div>
+        <div class="subtitle">Network Security Monitoring Platform</div>
+
+        {% if error %}
+        <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/login">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" name="username" class="form-control" placeholder="Username" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="password" class="form-control" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i> SIGN IN
+            </button>
+        </form>
+    </div>
+</body>
+</html>

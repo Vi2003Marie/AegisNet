@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AegisNet - Network Topology</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        #topology-canvas {
+            width: 100%;
+            height: 600px;
+            background: #080c18;
+            border-radius: 12px;
+            border: 1px solid #1e3a5f;
+            position: relative;
+            overflow: hidden;
+        }
+        .device-node {
+            position: absolute;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .device-node:hover { transform: scale(1.1); }
+        .device-node .node-icon {
+            font-size: 28px;
+            display: block;
+        }
+        .device-node .node-label {
+            font-size: 11px;
+            color: #c8d6e5;
+            margin-top: 5px;
+            max-width: 100px;
+            word-break: break-all;
+        }
+        .device-node .node-status {
+            font-size: 10px;
+            margin-top: 2px;
+        }
+        .connection-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .tooltip-box {
+            position: absolute;
+            background: #0d1227;
+            border: 1px solid #1e3a5f;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 12px;
+            color: #c8d6e5;
+            z-index: 100;
+            pointer-events: none;
+            display: none;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #7a8fa6;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">AEGIS<span>NET</span></div>
+    <div style="display:flex; align-items:center; gap:15px;">
+        <a href="/" style="color:#00d4ff; text-decoration:none; font-size:13px;">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="/logout" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+</nav>
+
+<div class="main">
+    <div class="section-card">
+        <div class="section-title" style="justify-content:space-between;">
+            <span><i class="fas fa-project-diagram"></i> Network Topology Map</span>
+            <button onclick="loadTopology()"
+                style="background:#1e3a5f; color:#00d4ff; border:none; padding:5px 15px; border-radius:10px; cursor:pointer; font-size:13px;">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+
+        <div id="topology-canvas">
+            <svg class="connection-line" id="lines-svg"></svg>
+            <div id="router-node" class="device-node" style="left:50%; top:50%; transform:translate(-50%,-50%);">
+                <span class="node-icon" style="color:#00d4ff;">
+                    <i class="fas fa-wifi"></i>
+                </span>
+                <div class="node-label" style="color:#00d4ff; font-weight:700;">Router/Gateway</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <i class="fas fa-laptop" style="color:#00ff88;"></i> Active Device
+            </div>
+            <div class="legend-item">
+                <i class="fas fa-laptop" style="color:#ff4d4d;"></i> Blocked Device
+            </div>
+            <div class="legend-item">
+                <i class="fas fa-wifi" style="color:#00d4ff;"></i> Router/Gateway
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card" style="margin-top:25px;">
+        <div class="section-title"><i class="fas fa-list"></i> Device Details</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>MAC Address</th>
+                    <th>First Seen</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="topology-devices-table"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="tooltip-box" id="tooltip"></div>
+
+<script>
+const canvas = document.getElementById('topology-canvas');
+const svg = document.getElementById('lines-svg');
+const tooltip = document.getElementById('tooltip');
+
+function getRouterPosition() {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: canvas.offsetWidth / 2,
+        y: canvas.offsetHeight / 2
+    };
+}
+
+function drawLine(x1, y1, x2, y2, color) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', '5,4');
+    line.setAttribute('opacity', '0.5');
+    svg.appendChild(line);
+}
+
+function loadTopology() {
+    fetch('/api/topology')
+        .then(r => r.json())
+        .then(devices => {
+            // Clear existing nodes except router
+            document.querySelectorAll('.device-node:not(#router-node)').forEach(n => n.remove());
+            svg.innerHTML = '';
+
+            const total = devices.length;
+            const routerX = canvas.offsetWidth / 2;
+            const routerY = canvas.offsetHeight / 2;
+            const radius = Math.min(canvas.offsetWidth, canvas.offsetHeight) * 0.35;
+
+            const tbody = document.getElementById('topology-devices-table');
+            tbody.innerHTML = '';
+
+            devices.forEach((device, index) => {
+                const angle = (2 * Math.PI * index) / total;
+                const x = routerX + radius * Math.cos(angle);
+                const y = routerY + radius * Math.sin(angle);
+
+                const color = device.blocked ? '#ff4d4d' : '#00ff88';
+                const statusText = device.blocked ? 'BLOCKED' : 'ACTIVE';
+
+                // Draw line from router to device
+                drawLine(routerX, routerY, x, y, color);
+
+                // Create device node
+                const node = document.createElement('div');
+                node.className = 'device-node';
+                node.style.left = (x - 40) + 'px';
+                node.style.top = (y - 40) + 'px';
+                node.innerHTML = `
+                    <span class="node-icon" style="color:${color};">
+                        <i class="fas fa-laptop"></i>
+                    </span>
+                   <div class="node-label">${device.device_name || device.ip_address}</div>
+                    <div class="node-status" style="color:${color};">${statusText}</div>
+                `;
+
+                node.addEventListener('mouseover', (e) => {
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 60) + 'px';
+                    tooltip.innerHTML = `
+                        <strong style="color:#00d4ff;">${device.ip_address}</strong><br>
+                        MAC: ${device.mac_address}<br>
+                        Status: <span style="color:${color};">${statusText}</span><br>
+                        First Seen: ${device.first_seen}
+                    `;
+                });
+
+                node.addEventListener('mouseout', () => {
+                    tooltip.style.display = 'none';
+                });
+
+                canvas.appendChild(node);
+
+                // Add to table
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${device.ip_address}</td>
+                        <td>${device.mac_address}</td>
+                        <td>${device.first_seen}</td>
+                        <td><span class="${device.blocked ? 'badge-high' : 'badge-active'}">${statusText}</span></td>
+                    </tr>
+                `;
+            });
+        });
+}
+
+loadTopology();
+setInterval(loadTopology, 15000);
+</script>
+
+</body>
+</html>

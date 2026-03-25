@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AegisNet - User Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">AEGIS<span>NET</span></div>
+    <div style="display:flex; align-items:center; gap:15px;">
+        <a href="/" style="color:#00d4ff; text-decoration:none; font-size:13px;">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="/logout" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+</nav>
+
+<div class="main">
+
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-users"></i> Admin Users</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Created At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>
+                        {% if user.role == 'superadmin' %}
+                        <span class="badge-active">{{ user.role }}</span>
+                        {% else %}
+                        <span class="badge-medium">{{ user.role }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.created_at }}</td>
+                    <td>
+                        {% if user.role != 'superadmin' %}
+                        <button onclick="deleteUser({{ user.id }})"
+                            style="background:#3d0f0f; color:#ff4d4d; border:1px solid #ff4d4d; padding:3px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        {% else %}
+                        <span style="color:#7a8fa6; font-size:12px;">Protected</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-card" style="margin-top:25px;">
+        <div class="section-title"><i class="fas fa-user-plus"></i> Add New Admin User</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <input type="text" id="new-username" placeholder="Username"
+                style="background:#111c35; border:1px solid #1e3a5f; color:#e0e6f0; padding:10px 15px; border-radius:8px; width:250px;">
+            <input type="password" id="new-password" placeholder="Password"
+                style="background:#111c35; border:1px solid #1e3a5f; color:#e0e6f0; padding:10px 15px; border-radius:8px; width:250px;">
+            <select id="new-role"
+                style="background:#111c35; border:1px solid #1e3a5f; color:#e0e6f0; padding:10px 15px; border-radius:8px; width:150px;">
+                <option value="admin">Admin</option>
+                <option value="viewer">Viewer</option>
+            </select>
+            <button onclick="addUser()"
+                style="background:#00d4ff; color:#0a0e1a; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:700;">
+                <i class="fas fa-plus"></i> Add User
+            </button>
+        </div>
+        <div id="user-message" style="margin-top:15px; font-size:13px;"></div>
+    </div>
+
+</div>
+
+<script>
+function addUser() {
+    const username = document.getElementById('new-username').value.trim();
+    const password = document.getElementById('new-password').value.trim();
+    const role = document.getElementById('new-role').value;
+    const msg = document.getElementById('user-message');
+
+    if (!username || !password) {
+        msg.style.color = '#ff4d4d';
+        msg.textContent = 'Please fill in all fields.';
+        return;
+    }
+
+    fetch('/add_user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, role })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'success') {
+            msg.style.color = '#00cc66';
+            msg.textContent = 'User added successfully. Refreshing...';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            msg.style.color = '#ff4d4d';
+            msg.textContent = data.message || 'Error adding user.';
+        }
+    });
+}
+
+function deleteUser(id) {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    fetch('/delete_user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        }
+    });
+}
+</script>
+
+</body>
+</html>
